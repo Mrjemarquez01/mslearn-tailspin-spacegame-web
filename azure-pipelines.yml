@@ -9,6 +9,7 @@ trigger:
 - '*'
 variables:
   buildConfiguration: Release
+  releaseBranchName: release
 stages:
 - stage: Build
   displayName: Build the web application
@@ -59,14 +60,21 @@ stages:
         zipAfterPublish: true
     - publish: $(Build.ArtifactStagingDirectory)
       artifact: drop
-- stage: Deploy
-  displayName: Deploy the web application
+- stage: Dev
+  displayName: Deploy to the dev environment
   dependsOn: Build
+  condition: >
+    and
+
+    (
+      succeeded(),
+      eq(variables['Build.SourceBranchName'], variables['releaseBranchName'])
+    )
   jobs:
   - deployment: Deploy
     pool:
       vmImage: ubuntu-20.04
-    environment: desarrollo
+    environment: dev
     variables:
     - group: Release
     strategy:
@@ -79,5 +87,5 @@ stages:
             displayName: 'Azure App Service Deploy: website'
             inputs:
               azureSubscription: Resource Manager - Tailspin - Space Game
-              appName: $(WebAppName)
+              appName: $(WebAppNameDev)
               package: $(Pipeline.Workspace)/drop/$(buildConfiguration)/*.zip
